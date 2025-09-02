@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WHERECLOCK</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+</head>
+<body>
+  <header>
+    <h1>WHERECLOCK</h1>
+  </header>
+
+  <nav id="mainNav">
+    <a href="#home" data-page="home">Inicio</a>
+    <a href="#area" data-page="area">Área</a>
+    <a href="#trayecto" data-page="trayecto">Trayecto</a>
+    <a href="#alarmas" data-page="alarmas">Alarmas</a>
+  </nav>
+
+  <main id="page">
+    <!-- HOME -->
+    <section id="homePage" class="page-section">
+      <h2>Bienvenido a WHERECLOCK</h2>
+      <p>Selecciona uno de los apartados:</p>
+      <div class="card-container">
+        <div class="card" onclick="location.hash='area'">
+          <img src="https://raw.githubusercontent.com/yourusername/assets/main/area.jpg" alt="Área"/>
+          <h3>Área</h3>
+        </div>
+        <div class="card" onclick="location.hash='trayecto'">
+          <img src="https://raw.githubusercontent.com/yourusername/assets/main/trayecto.jpg" alt="Trayecto"/>
+          <h3>Trayecto</h3>
+        </div>
+        <div class="card" onclick="location.hash='alarmas'">
+          <img src="https://raw.githubusercontent.com/yourusername/assets/main/alarmas.jpg" alt="Alarmas"/>
+          <h3>Alarmas</h3>
+        </div>
+      </div>
+    </section>
+
+    <!-- AREA -->
+    <section id="areaPage" class="page-section hidden">
+      <h2>Definir Área</h2>
+      <div class="input-bar">
+        <input type="text" id="searchInput" placeholder="Buscar ciudad..." />
+        <button onclick="buscarCiudad()">Buscar</button>
+        <button onclick="centrarUbicacion()">Mi ubicación</button>
+      </div>
+      <div class="range-control">
+        <label for="radiusRange">Tamaño del área:</label>
+        <input type="range" id="radiusRange" min="100" max="2000" step="50" value="300" />
+        <span id="radiusValue">300m</span>
+      </div>
+      <div id="map"></div>
+      <div class="alarm-status" id="alarmStatus">✅ Alarma activa</div>
+      <button onclick="toggleAlarma()" id="toggleAlarmaBtn">Desactivar alarma</button>
+    </section>
+
+    <!-- TRAYECTO -->
+    <section id="trayectoPage" class="page-section hidden">
+      <h2>Trayecto Recurrente</h2>
+      <div class="trayecto-controls">
+        <button onclick="iniciarTrayecto()">Iniciar trayecto</button>
+        <button onclick="finalizarTrayecto()">Finalizar trayecto</button>
+        <button onclick="mostrarTrayectos()">Ver trayectos guardados</button>
+      </div>
+      <div id="trayectoInfo">
+        <p>⏱ Tiempo: <span id="contadorTiempo">0</span> s</p>
+      </div>
+      <div id="trayectoMapa" style="height: 400px; margin-top: 10px;"></div>
+      <ul id="trayectosGuardados"></ul>
+    </section>
+
+    <!-- ALARMAS -->
+    <section id="alarmasPage" class="page-section hidden">
+      <h2>Seleccionar tono de alarma</h2>
+      <select id="tonoSelector">
+        <option value="https://www.soundjay.com/button/beep-07.wav">Beep clásico</option>
+        <option value="https://www.soundjay.com/button/beep-10.wav">Beep agudo</option>
+        <option value="https://www.soundjay.com/button/beep-01a.wav">Alarma fuerte</option>
+        <option value="https://www.soundjay.com/button/beep-02.wav">Tono suave</option>
+      </select>
+      <button onclick="probarTono()">Probar tono</button>
+      <audio id="alarmaAudio" preload="auto"></audio>
+    </section>
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
