@@ -77,13 +77,14 @@
     <section id="alarmasPage" class="page-section hidden">
       <h2>Seleccionar tono de alarma</h2>
       <select id="tonoSelector">
-        <option value="sounds/alarma-fuerte.mp3">Alarma fuerte</option>
-        <option value="sounds/despertador-suave.mp3">Despertador suave</option>
-        <option value="sounds/alerta-sismo.mp3">Alerta sismo</option>
-        <option value="sounds/alarma-divertida.mp3">Alarma divertida</option>
+        <option value="sounds/alarma1.mp3">Alarma 1</option>
+        <option value="sounds/alarma2.mp3">Alarma 2</option>
+        <option value="sounds/alarma3.mp3">Alarma 3</option>
+        <option value="sounds/alarma4.mp3">Alarma 4</option>
       </select>
-      <button onclick="probarTono()">Probar tono</button>
-      <button onclick="detenerAlarma()">Detener tono</button>
+      <button onclick="probarTono()">🔊 Probar tono</button>
+      <button onclick="reproducirAlarma()">⏰ Activar alarma</button>
+      <button onclick="detenerAlarma()">🛑 Detener alarma</button>
       <audio id="alarmaAudio" preload="auto"></audio>
     </section>
   </main>
