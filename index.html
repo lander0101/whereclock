@@ -13,12 +13,10 @@
   </header>
 
   <nav id="mainNav">
-    <ul>
-      <li><a href="#home" data-page="home">Inicio</a></li>
-      <li><a href="#area" data-page="area">Área</a></li>
-      <li><a href="#trayecto" data-page="trayecto">Trayecto</a></li>
-      <li><a href="#alarmas" data-page="alarmas">Alarmas</a></li>
-    </ul>
+    <a href="#home" data-page="home">Inicio</a>
+    <a href="#area" data-page="area">Área</a>
+    <a href="#trayecto" data-page="trayecto">Trayecto</a>
+    <a href="#alarmas" data-page="alarmas">Alarmas</a>
   </nav>
 
   <main id="page">
@@ -71,21 +69,21 @@
       <div id="trayectoInfo">
         <p>⏱ Tiempo: <span id="contadorTiempo">0</span> s</p>
       </div>
-      <div id="trayectoMapa"></div>
+      <div id="trayectoMapa" style="height: 400px; margin-top: 10px;"></div>
       <ul id="trayectosGuardados"></ul>
     </section>
 
     <!-- ALARMAS -->
     <section id="alarmasPage" class="page-section hidden">
       <h2>Seleccionar tono de alarma</h2>
-      <label for="tonoSelector">Tono:</label>
       <select id="tonoSelector">
-        <option value="https://www.soundjay.com/button/beep-07.wav">Beep clásico</option>
-        <option value="https://www.soundjay.com/button/beep-10.wav">Beep agudo</option>
-        <option value="https://www.soundjay.com/button/beep-01a.wav">Alarma fuerte</option>
-        <option value="https://www.soundjay.com/button/beep-02.wav">Tono suave</option>
+        <option value="sounds/alarma-fuerte.mp3">Alarma fuerte</option>
+        <option value="sounds/despertador-suave.mp3">Despertador suave</option>
+        <option value="sounds/alerta-sismo.mp3">Alerta sismo</option>
+        <option value="sounds/alarma-divertida.mp3">Alarma divertida</option>
       </select>
       <button onclick="probarTono()">Probar tono</button>
+      <button onclick="detenerAlarma()">Detener tono</button>
       <audio id="alarmaAudio" preload="auto"></audio>
     </section>
   </main>
