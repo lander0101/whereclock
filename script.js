@@ -1,3 +1,4 @@
+// 🌐 Páginas
 const pages = {
   home: document.getElementById('homePage'),
   area: document.getElementById('areaPage'),
@@ -5,13 +6,20 @@ const pages = {
   alarmas: document.getElementById('alarmasPage')
 };
 
+// 🔔 Alarma
 let alarmaActiva = true;
+let alarmaTimeout = null;
+const audio = document.getElementById('alarmaAudio');
+
+// 📍 Zona geográfica
 let map, circle;
 let zona = { lat: 40.4168, lng: -3.7038, radius: 300 };
+
+// 🚶 Trayecto
 let trayectoMap, trayectoPolyline, trayecto = [], trayectos = [];
 let trayectoTiempo = 0, trayectoTimer, marcadorFlecha;
 
-// --- CAMBIO DE PÁGINAS ---
+// 🔄 Navegación entre páginas
 function cambiarPagina() {
   const hash = window.location.hash.replace('#', '') || 'home';
   Object.entries(pages).forEach(([key, div]) => {
@@ -24,7 +32,7 @@ function cambiarPagina() {
 window.addEventListener('hashchange', cambiarPagina);
 window.addEventListener('load', cambiarPagina);
 
-// --- MAPA DEL ÁREA ---
+// 🗺️ Mapa del área
 function iniciarMapa() {
   map = L.map('map').setView([zona.lat, zona.lng], 13);
   L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png').addTo(map);
@@ -80,10 +88,12 @@ function centrarUbicacion() {
   }
 }
 
+// 🔁 Activar/desactivar alarma
 function toggleAlarma() {
   alarmaActiva = !alarmaActiva;
   const status = document.getElementById('alarmStatus');
   const button = document.getElementById('toggleAlarmaBtn');
+
   if (alarmaActiva) {
     status.textContent = '✅ Alarma activa';
     status.className = 'alarm-status alarm-active';
@@ -95,23 +105,43 @@ function toggleAlarma() {
   }
 }
 
-// --- TONOS ---
-function probarTono() {
+// 🔊 Reproducir alarma
+function reproducirAlarma() {
   const selector = document.getElementById('tonoSelector');
-  const audio = document.getElementById('alarmaAudio');
-  audio.src = selector.value;
+  const tono = selector ? selector.value : "https://www.soundjay.com/button/beep-07.wav";
+  audio.src = tono;
   audio.currentTime = 0;
-  audio.play().catch(err => {
-    console.error("Error al reproducir el tono:", err);
-  });
+  audio.loop = true;
+  audio.play().catch(err => console.error("Error al reproducir la alarma:", err));
+
+  alarmaTimeout = setTimeout(() => detenerAlarma(), 10000);
 }
 
-// --- TRAYECTO ---
+// 🛑 Detener alarma
+function detenerAlarma() {
+  audio.pause();
+  audio.currentTime = 0;
+  audio.loop = false;
+
+  if (alarmaTimeout) {
+    clearTimeout(alarmaTimeout);
+    alarmaTimeout = null;
+  }
+}
+
+// 🔉 Probar tono desde el apartado Alarmas
+function probarTono() {
+  detenerAlarma();
+  reproducirAlarma();
+}
+
+// 🗺️ Mapa del trayecto
 function iniciarTrayectoMapa() {
-  trayectoMap = L.map('trayectoMapa').setView([40.4168, -3.7038], 13);
+  trayectoMap = L.map('trayectoMapa').setView([zona.lat, zona.lng], 13);
   L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png').addTo(trayectoMap);
 }
 
+// ▶️ Iniciar trayecto
 function iniciarTrayecto() {
   trayecto = [];
   trayectoTiempo = 0;
@@ -152,6 +182,7 @@ function iniciarTrayecto() {
   }
 }
 
+// ⏹️ Finalizar trayecto
 function finalizarTrayecto() {
   clearInterval(trayecto.interval);
   clearInterval(trayectoTimer);
@@ -160,7 +191,7 @@ function finalizarTrayecto() {
     const distancia = calcularDistanciaTotal(trayecto).toFixed(2);
     const tiempo = trayectoTiempo;
     const resumen = `📍 Trayecto finalizado. Distancia: ${distancia} km. Tiempo: ${tiempo} seg.`;
-    
+
     trayectos.push({ coords: trayecto, resumen });
     mostrarTrayectos();
     alert(resumen);
@@ -172,6 +203,7 @@ function finalizarTrayecto() {
   }
 }
 
+// 📋 Mostrar trayectos guardados
 function mostrarTrayectos() {
   const lista = document.getElementById('trayectosGuardados');
   lista.innerHTML = '';
@@ -182,6 +214,7 @@ function mostrarTrayectos() {
   });
 }
 
+// 📏 Calcular distancia total
 function calcularDistanciaTotal(puntos) {
   let total = 0;
   for (let i = 1; i < puntos.length; i++) {
@@ -192,25 +225,20 @@ function calcularDistanciaTotal(puntos) {
   return total / 1000;
 }
 
-// --- CHEQUEO DE ENTRADA AL ÁREA ---
+// 📡 Chequeo de entrada al área
 setInterval(() => {
   if (!alarmaActiva) return;
+
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(pos => {
       const lat = pos.coords.latitude;
       const lng = pos.coords.longitude;
       const distancia = L.latLng(lat, lng).distanceTo([zona.lat, zona.lng]);
-      
+
       if (distancia <= zona.radius) {
-        const audio = document.getElementById('alarmaAudio');
-        if (audio.src && audio.src !== window.location.href) {
-          audio.currentTime = 0;
-          audio.play().catch(err => {
-            console.error("Error al reproducir la alarma:", err);
-          });
-          alert("¡Has llegado al área definida!");
-          alarmaActiva = false;
-        }
+        reproducirAlarma();
+        alert("¡Has llegado al área definida!");
+        alarmaActiva = false;
       }
     });
   }
