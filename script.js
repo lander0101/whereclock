@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let zona = { lat: 40.4168, lng: -3.7038, radius: 300 };
   let trayectoMap, trayectoPolyline, trayecto = [], trayectos = [];
   let trayectoTiempo = 0, trayectoTimer, marcadorFlecha;
+  let yaDentroDeZona = false; // 🔒 Control de entrada única
 
   // --- Cambio de página ---
   function cambiarPagina() {
@@ -29,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   window.addEventListener('hashchange', cambiarPagina);
-  cambiarPagina(); // Ejecutar al cargar
+  cambiarPagina();
 
   // --- Mapa del área ---
   function iniciarMapa() {
@@ -89,6 +90,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function toggleAlarma() {
     alarmaActiva = !alarmaActiva;
+    yaDentroDeZona = false; // 🔄 Reiniciar estado al activar/desactivar
     const status = document.getElementById('alarmStatus');
     const button = document.getElementById('toggleAlarmaBtn');
     if (alarmaActiva) {
@@ -165,7 +167,47 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Exponer funciones globalmente si se usan en HTML
+  // --- Verificación automática de ubicación (una sola vez por entrada) ---
+  function calcularDistancia(lat1, lon1, lat2, lon2) {
+    const R = 6371000;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * Math.PI / 180) *
+      Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  function verificarUbicacionEnZona() {
+    if (!alarmaActiva || !zona) return;
+
+    navigator.geolocation.getCurrentPosition(pos => {
+      const distancia = calcularDistancia(
+        pos.coords.latitude,
+        pos.coords.longitude,
+        zona.lat,
+        zona.lng
+      );
+
+      if (distancia <= zona.radius && !yaDentroDeZona) {
+        reproducirAlarma();
+        yaDentroDeZona = true; // ✅ Marcar que ya entró
+      }
+
+      if (distancia > zona.radius) {
+        yaDentroDeZona = false; // 🔄 Resetear si sale
+      }
+    }, err => {
+      console.warn("No se pudo obtener la ubicación:", err);
+    });
+  }
+
+  setInterval(verificarUbicacionEnZona, 5000);
+
+  // --- Exponer funciones globalmente ---
   window.buscarCiudad = buscarCiudad;
   window.centrarUbicacion = centrarUbicacion;
   window.toggleAlarma = toggleAlarma;
