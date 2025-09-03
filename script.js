@@ -100,7 +100,10 @@ function probarTono() {
   const selector = document.getElementById('tonoSelector');
   const audio = document.getElementById('alarmaAudio');
   audio.src = selector.value;
-  audio.play();
+  audio.currentTime = 0;
+  audio.play().catch(err => {
+    console.error("Error al reproducir el tono:", err);
+  });
 }
 
 // --- TRAYECTO ---
@@ -117,7 +120,6 @@ function iniciarTrayecto() {
   trayectoPolyline = L.polyline([], { color: 'blue' }).addTo(trayectoMap);
   alert("Trayecto iniciado");
 
-  // Iniciar contador
   trayectoTimer = setInterval(() => {
     trayectoTiempo++;
     document.getElementById('contadorTiempo').textContent = trayectoTiempo;
@@ -131,7 +133,6 @@ function iniciarTrayecto() {
         trayectoPolyline.addLatLng(coords);
         trayectoMap.setView(coords, 15);
 
-        // Dibujar flecha
         if (!marcadorFlecha) {
           marcadorFlecha = L.marker(coords, {
             icon: L.divIcon({ className: 'arrow-marker' })
@@ -139,7 +140,6 @@ function iniciarTrayecto() {
         } else {
           marcadorFlecha.setLatLng(coords);
 
-          // Calcular ángulo de rotación
           if (trayecto.length > 1) {
             const [lat1, lon1] = trayecto[trayecto.length - 2];
             const [lat2, lon2] = trayecto[trayecto.length - 1];
@@ -187,9 +187,9 @@ function calcularDistanciaTotal(puntos) {
   for (let i = 1; i < puntos.length; i++) {
     const [lat1, lon1] = puntos[i - 1];
     const [lat2, lon2] = puntos[i];
-    total += L.latLng(lat1, lon1).distanceTo([lat2, lon2]); // metros
+    total += L.latLng(lat1, lon1).distanceTo([lat2, lon2]);
   }
-  return total / 1000; // km
+  return total / 1000;
 }
 
 // --- CHEQUEO DE ENTRADA AL ÁREA ---
@@ -203,10 +203,13 @@ setInterval(() => {
       
       if (distancia <= zona.radius) {
         const audio = document.getElementById('alarmaAudio');
-        if (audio.src) {
-          audio.play();
+        if (audio.src && audio.src !== window.location.href) {
+          audio.currentTime = 0;
+          audio.play().catch(err => {
+            console.error("Error al reproducir la alarma:", err);
+          });
           alert("¡Has llegado al área definida!");
-          alarmaActiva = false; // evitar bucle
+          alarmaActiva = false;
         }
       }
     });
