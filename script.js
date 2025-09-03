@@ -101,9 +101,62 @@ function toggleAlarma() {
 // --- Tonos ---
 function reproducirAlarma() {
   const selector = document.getElementById('tonoSelector');
-  const tono = selector ? selector.value : "sounds/alarma-fuerte.mp3";
+  const tono = selector ? selector.value : "sounds/alarma1.mp3";
   audio.src = tono;
   audio.currentTime = 0;
   audio.loop = true;
   audio.play().catch(err => console.error("Error al reproducir la alarma:", err));
-  alarmaTimeout = setTimeout
+  alarmaTimeout = setTimeout(() => detenerAlarma(), 10000); // Detener tras 10 segundos
+}
+
+function probarTono() {
+  const selector = document.getElementById('tonoSelector');
+  const tono = selector.value;
+  audio.src = tono;
+  audio.currentTime = 0;
+  audio.loop = false;
+  audio.play().catch(err => console.error("Error al reproducir el tono:", err));
+}
+
+function detenerAlarma() {
+  audio.pause();
+  audio.currentTime = 0;
+  audio.loop = false;
+  if (alarmaTimeout) {
+    clearTimeout(alarmaTimeout);
+    alarmaTimeout = null;
+  }
+}
+
+// --- Trayecto (placeholder) ---
+function iniciarTrayectoMapa() {
+  trayectoMap = L.map('trayectoMapa').setView([zona.lat, zona.lng], 13);
+  L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png').addTo(trayectoMap);
+  trayectoPolyline = L.polyline([], { color: 'blue' }).addTo(trayectoMap);
+}
+
+function iniciarTrayecto() {
+  trayecto = [];
+  trayectoTiempo = 0;
+  trayectoPolyline.setLatLngs([]);
+  trayectoTimer = setInterval(() => {
+    trayectoTiempo++;
+    document.getElementById('contadorTiempo').textContent = trayectoTiempo;
+  }, 1000);
+}
+
+function finalizarTrayecto() {
+  clearInterval(trayectoTimer);
+  trayectos.push([...trayecto]);
+  alert("Trayecto guardado");
+}
+
+function mostrarTrayectos() {
+  const lista = document.getElementById('trayectosGuardados');
+  lista.innerHTML = '';
+  trayectos.forEach((t, i) => {
+    const li = document.createElement('li');
+    li.textContent = `Trayecto ${i + 1}: ${t.length} puntos`;
+    lista.appendChild(li);
+  });
+}
