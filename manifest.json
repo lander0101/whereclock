@@ -8,14 +8,14 @@
   "lang": "es",
   "start_url": "https://lander0101.github.io/whereclock/",
   "name": "Whereclock",
-  "theme_color": "#000000",
-  "background_color": "#d9d9d9",
   "short_name": "Whereclock",
   "id": "Whereclock",
   "description": "Whereclock is the first alarm that turns on when you enter on a prestablished area.",
   "categories": [
     "utilities"
   ],
+  "theme_color": "#000000",
+  "background_color": "#d9d9d9",
   "icons": [
     {
       "src": "/icons/icon-192.png",
