@@ -21,11 +21,6 @@
     "src": "/iconos/icono-192.png",
     "sizes": "192x192",
     "type": "image/png"
-  },
-  {
-    "src": "/iconos/esto-si-es.png",
-    "sizes": "512x512",
-    "type": "image/png"
   }
 ]
 
