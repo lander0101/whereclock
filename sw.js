@@ -1,10 +1,12 @@
-// Nombre de la caché
-const CACHE_NAME = "whereclock-v1";
+// --- CACHES ---
+const CACHE_NAME = "whereclock-v1";       // Recursos principales
+const TILE_CACHE = "tiles-cache-v1";      // Tiles de Leaflet
 
-// Archivos que se van a guardar en caché
+// --- ARCHIVOS A CACHEAR ---
 const urlsToCache = [
   "/",
   "/index.html",
+  "/offline.html", // <-- fallback offline
   "/style.css",
   "/script.js",
   "/manifest.json",
@@ -21,64 +23,99 @@ const urlsToCache = [
   "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
 ];
 
-// Instalar Service Worker y guardar archivos en caché
+// --- INSTALACIÓN ---
 self.addEventListener("install", event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
-      console.log("📦 Archivos cacheados");
+      console.log("📦 Archivos principales cacheados");
       return cache.addAll(urlsToCache);
     })
   );
 });
 
-// Activar y limpiar cachés viejas
+// --- ACTIVACIÓN ---
 self.addEventListener("activate", event => {
   event.waitUntil(
     caches.keys().then(cacheNames =>
       Promise.all(
         cacheNames
-          .filter(name => name !== CACHE_NAME)
+          .filter(name => name !== CACHE_NAME && name !== TILE_CACHE)
           .map(name => caches.delete(name))
       )
     )
   );
 });
 
-// Interceptar peticiones
+// --- FETCH ---
 self.addEventListener("fetch", event => {
+  const url = new URL(event.request.url);
+
+  // --- Cache dinámico para tiles de Leaflet ---
+  if (url.origin.includes("tile.openstreetmap") || url.origin.includes("tile.openstreetmap.fr")) {
+    event.respondWith(
+      caches.open(TILE_CACHE).then(cache =>
+        cache.match(event.request).then(response => {
+          return response || fetch(event.request).then(networkResponse => {
+            cache.put(event.request, networkResponse.clone());
+            return networkResponse;
+          });
+        })
+      )
+    );
+    return;
+  }
+
+  // --- Cache de recursos normales ---
   event.respondWith(
     caches.match(event.request).then(response => {
       return response || fetch(event.request).catch(() => {
+        // Offline fallback
         if (event.request.destination === "document") {
-          return caches.match("/index.html");
+          return caches.match("/offline.html");
         }
       });
     })
   );
 });
 
-// --- Escuchar mensajes desde script.js para mostrar notificación ---
+// --- MENSAJES DESDE SCRIPT.JS ---
 self.addEventListener("message", event => {
   if (event.data && event.data.type === "mostrarAlarma") {
     self.registration.showNotification("¡ESTÁS DENTRO DEL ÁREA PREESTABLECIDA!", {
       body: "WHERECLOCK detectó que entraste en la zona definida.",
       icon: "icons/icon-192.png",
       vibrate: [300, 100, 300],
-      tag: "alarma-ubicacion", // evita duplicados
-      renotify: true
+      tag: "alarma-ubicacion",
+      renotify: true,
+      actions: [
+        { action: "detener", title: "🛑 Detener alarma" }
+      ]
     });
   }
 });
 
-// --- Manejo opcional de click en notificación ---
+// --- CLICK EN NOTIFICACIÓN ---
 self.addEventListener("notificationclick", event => {
   event.notification.close();
-  event.waitUntil(
-    clients.matchAll({ type: "window" }).then(clientList => {
-      for (const client of clientList) {
-        if ("focus" in client) return client.focus();
-      }
-      if (clients.openWindow) return clients.openWindow("/");
-    })
-  );
+
+  if (event.action === "detener") {
+    // Enviar mensaje a todos los clientes para detener alarma
+    event.waitUntil(
+      clients.matchAll({ type: "window" }).then(clientList => {
+        clientList.forEach(client => {
+          client.postMessage({ type: "detenerAlarma" });
+        });
+      })
+    );
+  } else {
+    // Click normal: abrir o enfocar app
+    event.waitUntil(
+      clients.matchAll({ type: "window" }).then(clientList => {
+        for (const client of clientList) {
+          if ("focus" in client) return client.focus();
+        }
+        if (clients.openWindow) return clients.openWindow("/");
+      })
+    );
+  }
 });
