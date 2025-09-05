@@ -48,13 +48,37 @@ self.addEventListener("activate", event => {
 self.addEventListener("fetch", event => {
   event.respondWith(
     caches.match(event.request).then(response => {
-      // Devuelve del caché si existe, sino de la red
       return response || fetch(event.request).catch(() => {
-        // Si falla la red y no está en caché, devolver fallback (opcional)
         if (event.request.destination === "document") {
           return caches.match("/index.html");
         }
       });
+    })
+  );
+});
+
+// --- Escuchar mensajes desde script.js para mostrar notificación ---
+self.addEventListener("message", event => {
+  if (event.data && event.data.type === "mostrarAlarma") {
+    self.registration.showNotification("¡ESTÁS DENTRO DEL ÁREA PREESTABLECIDA!", {
+      body: "WHERECLOCK detectó que entraste en la zona definida.",
+      icon: "icons/icon-192.png",
+      vibrate: [300, 100, 300],
+      tag: "alarma-ubicacion", // evita duplicados
+      renotify: true
+    });
+  }
+});
+
+// --- Manejo opcional de click en notificación ---
+self.addEventListener("notificationclick", event => {
+  event.notification.close();
+  event.waitUntil(
+    clients.matchAll({ type: "window" }).then(clientList => {
+      for (const client of clientList) {
+        if ("focus" in client) return client.focus();
+      }
+      if (clients.openWindow) return clients.openWindow("/");
     })
   );
 });
