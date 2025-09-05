@@ -11,7 +11,6 @@ const urlsToCache = [
   "/script.js",
   "/manifest.json",
   "/iconos/icono-192.png",
-  "/iconos/esto-si-es.png",
   "/img/area.jpg",
   "/img/trayecto.jpg",
   "/img/alarmas.jpg",
