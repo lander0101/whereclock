@@ -13,39 +13,8 @@ document.addEventListener('DOMContentLoaded', () => {
   let map, circle;
   let zona = { lat: 40.4168, lng: -3.7038, radius: 300 };
   let trayectoMap, trayectoPolyline, trayecto = [], trayectos = [];
-  let trayectoTiempo = 0, trayectoTimer, marcadorFlecha;
-  let yaDentroDeZona = false; // 🔒 Control de entrada única
-
-  // --- Notificaciones ---
-  function solicitarPermisoNotificaciones() {
-    if ("Notification" in window) {
-      Notification.requestPermission().then(permission => {
-        if (permission === "granted") {
-          console.log("✅ Permiso de notificaciones concedido");
-        } else {
-          console.log("❌ Permiso de notificaciones denegado");
-        }
-      });
-    }
-  }
-
-  function mostrarNotificacion() {
-    if (Notification.permission === "granted") {
-      // Notificación en primer plano
-      new Notification("¡ESTÁS DENTRO DEL ÁREA PREESTABLECIDA!", {
-        body: "WHERECLOCK detectó que entraste en la zona definida.",
-        icon: "icons/icon-192.png",
-        vibrate: [300, 100, 300]
-      });
-
-      // Notificación desde el Service Worker (segundo plano)
-      if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-        navigator.serviceWorker.controller.postMessage({
-          type: "mostrarAlarma"
-        });
-      }
-    }
-  }
+  let trayectoTiempo = 0, trayectoTimer;
+  let yaDentroDeZona = false; // Control de entrada única
 
   // --- Cambio de página ---
   function cambiarPagina() {
@@ -121,7 +90,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function toggleAlarma() {
     alarmaActiva = !alarmaActiva;
-    yaDentroDeZona = false; // 🔄 Reiniciar estado al activar/desactivar
+    yaDentroDeZona = false; // Reiniciar estado
     const status = document.getElementById('alarmStatus');
     const button = document.getElementById('toggleAlarmaBtn');
     if (alarmaActiva) {
@@ -144,9 +113,6 @@ document.addEventListener('DOMContentLoaded', () => {
     audio.loop = true;
     audio.play().catch(err => console.error("Error al reproducir la alarma:", err));
     alarmaTimeout = setTimeout(() => detenerAlarma(), 10000);
-
-    // 🔔 Mostrar notificación
-    mostrarNotificacion();
   }
 
   function probarTono() {
@@ -201,7 +167,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // --- Verificación automática de ubicación ---
+  // --- Verificación de ubicación ---
   function calcularDistancia(lat1, lon1, lat2, lon2) {
     const R = 6371000;
     const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -227,12 +193,20 @@ document.addEventListener('DOMContentLoaded', () => {
       );
 
       if (distancia <= zona.radius && !yaDentroDeZona) {
-        reproducirAlarma(); // 🔔 aquí ya manda la notificación
-        yaDentroDeZona = true;
+        reproducirAlarma();
+        yaDentroDeZona = true; // Marcar entrada
+
+        // Solicitar permiso de notificaciones y enviar mensaje al SW
+        if (Notification.permission === "default") {
+          Notification.requestPermission();
+        }
+        if (Notification.permission === "granted" && navigator.serviceWorker.controller) {
+          navigator.serviceWorker.controller.postMessage({ type: "mostrarAlarma" });
+        }
       }
 
       if (distancia > zona.radius) {
-        yaDentroDeZona = false;
+        yaDentroDeZona = false; // Reset al salir
       }
     }, err => {
       console.warn("No se pudo obtener la ubicación:", err);
@@ -241,8 +215,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   setInterval(verificarUbicacionEnZona, 5000);
 
-  // --- Al cargar la app, pedir permiso de notificaciones ---
-  solicitarPermisoNotificaciones();
+  // --- Escuchar mensajes desde el SW ---
+  if (navigator.serviceWorker) {
+    navigator.serviceWorker.addEventListener("message", event => {
+      if (event.data && event.data.type === "detenerAlarma") {
+        detenerAlarma();
+        alarmaActiva = false;
+        toggleAlarma(); // Actualiza estado visual
+      }
+    });
+  }
 
   // --- Exponer funciones globalmente ---
   window.buscarCiudad = buscarCiudad;
