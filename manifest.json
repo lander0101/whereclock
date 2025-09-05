@@ -9,7 +9,7 @@
   "start_url": "https://lander0101.github.io/whereclock/",
   "name": "Whereclock",
   "short_name": "Whereclock",
-  "id": "Whereclock",
+  "id": "/whereclock",
   "description": "Whereclock is the first alarm that turns on when you enter on a prestablished area.",
   "categories": [
     "utilities"
