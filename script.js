@@ -16,6 +16,37 @@ document.addEventListener('DOMContentLoaded', () => {
   let trayectoTiempo = 0, trayectoTimer, marcadorFlecha;
   let yaDentroDeZona = false; // 🔒 Control de entrada única
 
+  // --- Notificaciones ---
+  function solicitarPermisoNotificaciones() {
+    if ("Notification" in window) {
+      Notification.requestPermission().then(permission => {
+        if (permission === "granted") {
+          console.log("✅ Permiso de notificaciones concedido");
+        } else {
+          console.log("❌ Permiso de notificaciones denegado");
+        }
+      });
+    }
+  }
+
+  function mostrarNotificacion() {
+    if (Notification.permission === "granted") {
+      // Notificación en primer plano
+      new Notification("¡ESTÁS DENTRO DEL ÁREA PREESTABLECIDA!", {
+        body: "WHERECLOCK detectó que entraste en la zona definida.",
+        icon: "icons/icon-192.png",
+        vibrate: [300, 100, 300]
+      });
+
+      // Notificación desde el Service Worker (segundo plano)
+      if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({
+          type: "mostrarAlarma"
+        });
+      }
+    }
+  }
+
   // --- Cambio de página ---
   function cambiarPagina() {
     const hash = window.location.hash.replace('#', '') || 'home';
@@ -113,6 +144,9 @@ document.addEventListener('DOMContentLoaded', () => {
     audio.loop = true;
     audio.play().catch(err => console.error("Error al reproducir la alarma:", err));
     alarmaTimeout = setTimeout(() => detenerAlarma(), 10000);
+
+    // 🔔 Mostrar notificación
+    mostrarNotificacion();
   }
 
   function probarTono() {
@@ -167,7 +201,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // --- Verificación automática de ubicación (una sola vez por entrada) ---
+  // --- Verificación automática de ubicación ---
   function calcularDistancia(lat1, lon1, lat2, lon2) {
     const R = 6371000;
     const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -193,12 +227,12 @@ document.addEventListener('DOMContentLoaded', () => {
       );
 
       if (distancia <= zona.radius && !yaDentroDeZona) {
-        reproducirAlarma();
-        yaDentroDeZona = true; // ✅ Marcar que ya entró
+        reproducirAlarma(); // 🔔 aquí ya manda la notificación
+        yaDentroDeZona = true;
       }
 
       if (distancia > zona.radius) {
-        yaDentroDeZona = false; // 🔄 Resetear si sale
+        yaDentroDeZona = false;
       }
     }, err => {
       console.warn("No se pudo obtener la ubicación:", err);
@@ -206,6 +240,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   setInterval(verificarUbicacionEnZona, 5000);
+
+  // --- Al cargar la app, pedir permiso de notificaciones ---
+  solicitarPermisoNotificaciones();
 
   // --- Exponer funciones globalmente ---
   window.buscarCiudad = buscarCiudad;
