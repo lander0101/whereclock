@@ -10,7 +10,7 @@ const urlsToCache = [
   "/style.css",
   "/script.js",
   "/manifest.json",
-  "/icons/icon-192.png",
+  "/icons/icon-192.svg",
   "/icons/icon-512.svg",
   "/img/area.jpg",
   "/img/trayecto.jpg",
