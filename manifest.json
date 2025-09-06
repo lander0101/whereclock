@@ -4,7 +4,8 @@
     "window-controls-overlay"
   ],
   "orientation": "any",
-  "display": "fullscreen",
+  "display": "standalone",
+  "display_override": ["fullscreen","window-controls-overlay"],
   "lang": "es",
   "start_url": "https://lander0101.github.io/whereclock/",
   "name": "Whereclock",
@@ -23,9 +24,9 @@
     "type": "image/png"
   },
   {
-    "src": "/icons/icon-512.svg",
+    "src": "/icons/icon-512.png",
     "sizes": "512x512",
-    "type": "image/svg"
+    "type": "image/png"
   }
 
 ]
