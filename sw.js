@@ -1,12 +1,13 @@
 // --- CACHES ---
-const CACHE_NAME = "whereclock-v1";       // Recursos principales
-const TILE_CACHE = "tiles-cache-v1";      // Tiles de Leaflet
+const CACHE_NAME = "whereclock-v2";      // Recursos principales
+const TILE_CACHE = "tiles-cache-v1";     // Tiles de Leaflet
+const MAX_TILES = 200;                   // Límite de tiles cacheados
 
 // --- ARCHIVOS A CACHEAR ---
 const urlsToCache = [
   "/",
   "/index.html",
-  "/offline.html", // <-- fallback offline
+  "/offline.html", 
   "/style.css",
   "/script.js",
   "/manifest.json",
@@ -19,6 +20,7 @@ const urlsToCache = [
   "/sounds/alarma2.mp3",
   "/sounds/alarma3.mp3",
   "/sounds/alarma4.mp3",
+  // ⚠️ Recomendación: guarda Leaflet localmente en /libs/
   "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css",
   "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
 ];
@@ -31,6 +33,7 @@ self.addEventListener("install", event => {
       return cache.addAll(urlsToCache);
     })
   );
+  self.skipWaiting(); // Activa inmediatamente
 });
 
 // --- ACTIVACIÓN ---
@@ -44,6 +47,7 @@ self.addEventListener("activate", event => {
       )
     )
   );
+  self.clients.claim(); // Control inmediato
 });
 
 // --- FETCH ---
@@ -51,14 +55,25 @@ self.addEventListener("fetch", event => {
   const url = new URL(event.request.url);
 
   // --- Cache dinámico para tiles de Leaflet ---
-  if (url.origin.includes("tile.openstreetmap") || url.origin.includes("tile.openstreetmap.fr")) {
+  if (url.origin.includes("tile.openstreetmap")) {
     event.respondWith(
       caches.open(TILE_CACHE).then(cache =>
         cache.match(event.request).then(response => {
-          return response || fetch(event.request).then(networkResponse => {
-            cache.put(event.request, networkResponse.clone());
-            return networkResponse;
-          });
+          return (
+            response ||
+            fetch(event.request).then(networkResponse => {
+              cache.put(event.request, networkResponse.clone());
+
+              // Limitar cantidad de tiles en caché
+              cache.keys().then(keys => {
+                if (keys.length > MAX_TILES) {
+                  cache.delete(keys[0]); // Borra el más viejo
+                }
+              });
+
+              return networkResponse;
+            })
+          );
         })
       )
     );
@@ -68,12 +83,15 @@ self.addEventListener("fetch", event => {
   // --- Cache de recursos normales ---
   event.respondWith(
     caches.match(event.request).then(response => {
-      return response || fetch(event.request).catch(() => {
-        // Offline fallback
-        if (event.request.destination === "document") {
-          return caches.match("/offline.html");
-        }
-      });
+      return (
+        response ||
+        fetch(event.request).catch(() => {
+          // Offline fallback
+          if (event.request.destination === "document") {
+            return caches.match("/offline.html");
+          }
+        })
+      );
     })
   );
 });
