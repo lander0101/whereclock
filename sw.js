@@ -1,137 +1,104 @@
-// --- CACHES ---
-const CACHE_NAME = "whereclock-v2";      // Recursos principales
-const TILE_CACHE = "tiles-cache-v1";     // Tiles de Leaflet
-const MAX_TILES = 200;                   // Límite de tiles cacheados
+// --- Nombres de caches ---
+const CACHE_NAME = "whereclock-v3";       // App shell
+const TILE_CACHE = "tiles-cache-v1";      // Tiles de OSM
+const MAX_TILES = 300;                     // Máximo de tiles a cachear
 
-// --- ARCHIVOS A CACHEAR ---
+// --- Archivos de la aplicación ---
 const urlsToCache = [
-  "/",
-  "/index.html",
-  "/offline.html", 
-  "/style.css",
-  "/script.js",
+  "/", "/index.html", "/offline.html",
+  "/style.css", "/script.js",
   "/manifest.json",
-  "/icons/icon-192.png",
-  "/icons/icon-512.png",
-  "/img/area.jpg",
-  "/img/trayecto.jpg",
-  "/img/alarmas.jpg",
-  "/sounds/alarma1.mp3",
-  "/sounds/alarma2.mp3",
-  "/sounds/alarma3.mp3",
-  "/sounds/alarma4.mp3",
-  // ⚠️ Recomendación: guarda Leaflet localmente en /libs/
-  "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css",
-  "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+  "/icons/icon-192.png", "/icons/icon-512.png",
+  "/img/area.jpg", "/img/trayecto.jpg", "/img/alarmas.jpg",
+  "/sounds/alarma1.mp3", "/sounds/alarma2.mp3", "/sounds/alarma3.mp3", "/sounds/alarma4.mp3",
+  "/libs/leaflet/leaflet.css", "/libs/leaflet/leaflet.js"
 ];
 
-// --- INSTALACIÓN ---
+// --- Instalación ---
 self.addEventListener("install", event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      console.log("📦 Archivos principales cacheados");
-      return cache.addAll(urlsToCache);
-    })
+    caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
   );
-  self.skipWaiting(); // Activa inmediatamente
+  self.skipWaiting();
 });
 
-// --- ACTIVACIÓN ---
+// --- Activación ---
 self.addEventListener("activate", event => {
   event.waitUntil(
-    caches.keys().then(cacheNames =>
+    caches.keys().then(keys =>
       Promise.all(
-        cacheNames
-          .filter(name => name !== CACHE_NAME && name !== TILE_CACHE)
-          .map(name => caches.delete(name))
+        keys.filter(k => k !== CACHE_NAME && k !== TILE_CACHE)
+            .map(k => caches.delete(k))
       )
     )
   );
-  self.clients.claim(); // Control inmediato
+  self.clients.claim();
 });
 
-// --- FETCH ---
+// --- Fetch ---
 self.addEventListener("fetch", event => {
   const url = new URL(event.request.url);
 
-  // --- Cache dinámico para tiles de Leaflet ---
-  if (url.origin.includes("tile.openstreetmap")) {
+  // --- Tiles de OSM dinámicos ---
+  if (url.origin === "https://tile.openstreetmap.org") {
     event.respondWith(
       caches.open(TILE_CACHE).then(cache =>
         cache.match(event.request).then(response => {
-          return (
-            response ||
-            fetch(event.request).then(networkResponse => {
-              cache.put(event.request, networkResponse.clone());
-
-              // Limitar cantidad de tiles en caché
-              cache.keys().then(keys => {
-                if (keys.length > MAX_TILES) {
-                  cache.delete(keys[0]); // Borra el más viejo
-                }
-              });
-
-              return networkResponse;
-            })
-          );
+          return response || fetch(event.request).then(networkResponse => {
+            cache.put(event.request, networkResponse.clone());
+            // Limitar cantidad de tiles
+            cache.keys().then(keys => {
+              if (keys.length > MAX_TILES) cache.delete(keys[0]);
+            });
+            return networkResponse;
+          });
         })
       )
     );
     return;
   }
 
-  // --- Cache de recursos normales ---
+  // --- App shell y otros recursos ---
   event.respondWith(
     caches.match(event.request).then(response => {
-      return (
-        response ||
-        fetch(event.request).catch(() => {
-          // Offline fallback
-          if (event.request.destination === "document") {
-            return caches.match("/offline.html");
-          }
-        })
-      );
+      return response || fetch(event.request).catch(() => {
+        // Offline fallback
+        if (event.request.destination === "document") {
+          return caches.match("/offline.html");
+        }
+      });
     })
   );
 });
 
-// --- MENSAJES DESDE SCRIPT.JS ---
+// --- Mensajes de script.js ---
 self.addEventListener("message", event => {
   if (event.data && event.data.type === "mostrarAlarma") {
-    self.registration.showNotification("¡ESTÁS DENTRO DEL ÁREA PREESTABLECIDA!", {
+    self.registration.showNotification("¡ENTRAS EN EL ÁREA!", {
       body: "WHERECLOCK detectó que entraste en la zona definida.",
       icon: "icons/icon-192.png",
       vibrate: [300, 100, 300],
       tag: "alarma-ubicacion",
       renotify: true,
-      actions: [
-        { action: "detener", title: "🛑 Detener alarma" }
-      ]
+      actions: [{ action: "detener", title: "🛑 Detener alarma" }]
     });
   }
 });
 
-// --- CLICK EN NOTIFICACIÓN ---
+// --- Click en notificación ---
 self.addEventListener("notificationclick", event => {
   event.notification.close();
 
   if (event.action === "detener") {
-    // Enviar mensaje a todos los clientes para detener alarma
     event.waitUntil(
-      clients.matchAll({ type: "window" }).then(clientList => {
-        clientList.forEach(client => {
-          client.postMessage({ type: "detenerAlarma" });
-        });
+      clients.matchAll({ type: "window" }).then(clientsList => {
+        clientsList.forEach(client => client.postMessage({ type: "detenerAlarma" }));
       })
     );
   } else {
-    // Click normal: abrir o enfocar app
     event.waitUntil(
-      clients.matchAll({ type: "window" }).then(clientList => {
-        for (const client of clientList) {
-          if ("focus" in client) return client.focus();
-        }
+      clients.matchAll({ type: "window" }).then(clientsList => {
+        for (const client of clientsList) if ("focus" in client) return client.focus();
         if (clients.openWindow) return clients.openWindow("/");
       })
     );
