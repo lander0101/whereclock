@@ -38,7 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function iniciarMapa() {
     map = L.map('map').setView([zona.lat, zona.lng], 13);
 
-    // ✅ Tiles online OSM, Leaflet local
+    // Tiles online de OSM con cache dinámico
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
     }).addTo(map);
@@ -243,3 +243,4 @@ document.addEventListener('DOMContentLoaded', () => {
   window.finalizarTrayecto = finalizarTrayecto;
   window.mostrarTrayectos = mostrarTrayectos;
 });
+
