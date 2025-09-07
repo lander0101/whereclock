@@ -37,7 +37,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- Mapa del área ---
   function iniciarMapa() {
     map = L.map('map').setView([zona.lat, zona.lng], 13);
-    L.tileLayer('libs/leaflet/{z}/{x}/{y}.png').addTo(map); // Leaflet local
+
+    // ✅ Tiles online OSM, Leaflet local
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
+    }).addTo(map);
 
     circle = L.circle([zona.lat, zona.lng], {
       radius: zona.radius,
@@ -131,7 +135,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- Trayecto ---
   function iniciarTrayectoMapa() {
     trayectoMap = L.map('trayectoMapa').setView([zona.lat, zona.lng], 13);
-    L.tileLayer('libs/leaflet/{z}/{x}/{y}.png').addTo(trayectoMap);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OSM'
+    }).addTo(trayectoMap);
     trayectoPolyline = L.polyline([], { color: 'blue' }).addTo(trayectoMap);
   }
 
