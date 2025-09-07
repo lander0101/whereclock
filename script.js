@@ -13,16 +13,18 @@ document.addEventListener('DOMContentLoaded', () => {
   let map, circle;
   let zona = { lat: 40.4168, lng: -3.7038, radius: 300 };
   let trayectoMap, trayectoPolyline, trayecto = [], trayectos = [];
-  let trayectoTiempo = 0, trayectoTimer;
-  let yaDentroDeZona = false; // Control de entrada única
+  let trayectoTiempo = 0, trayectoTimer, trayectoWatcher;
+  let yaDentroDeZona = false;
+
+  // --- Cargar trayectos de localStorage ---
+  const saved = localStorage.getItem("trayectos");
+  if (saved) trayectos = JSON.parse(saved);
 
   // --- Cambio de página ---
   function cambiarPagina() {
     const hash = window.location.hash.replace('#', '') || 'home';
     Object.entries(pages).forEach(([key, div]) => {
-      if (div) {
-        div.classList.toggle('hidden', key !== hash);
-      }
+      if (div) div.classList.toggle('hidden', key !== hash);
     });
 
     if (hash === 'area' && !map) setTimeout(iniciarMapa, 100);
@@ -35,7 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- Mapa del área ---
   function iniciarMapa() {
     map = L.map('map').setView([zona.lat, zona.lng], 13);
-    L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png').addTo(map);
+    L.tileLayer('libs/leaflet/{z}/{x}/{y}.png').addTo(map); // Leaflet local
 
     circle = L.circle([zona.lat, zona.lng], {
       radius: zona.radius,
@@ -68,9 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
           zona.lat = latlng[0];
           zona.lng = latlng[1];
           circle.setLatLng(latlng);
-        } else {
-          alert("Ciudad no encontrada");
-        }
+        } else alert("Ciudad no encontrada");
       });
   }
 
@@ -83,14 +83,12 @@ document.addEventListener('DOMContentLoaded', () => {
         zona.lng = coords[1];
         circle.setLatLng(coords);
       });
-    } else {
-      alert("Geolocalización no soportada");
-    }
+    } else alert("Geolocalización no soportada");
   }
 
   function toggleAlarma() {
     alarmaActiva = !alarmaActiva;
-    yaDentroDeZona = false; // Reiniciar estado
+    yaDentroDeZona = false;
     const status = document.getElementById('alarmStatus');
     const button = document.getElementById('toggleAlarmaBtn');
     if (alarmaActiva) {
@@ -111,8 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
     audio.src = tono;
     audio.currentTime = 0;
     audio.loop = true;
-    audio.play().catch(err => console.error("Error al reproducir la alarma:", err));
-    alarmaTimeout = setTimeout(() => detenerAlarma(), 10000);
+    audio.play().catch(err => console.error("Error al reproducir alarma:", err));
   }
 
   function probarTono() {
@@ -128,16 +125,13 @@ document.addEventListener('DOMContentLoaded', () => {
     audio.pause();
     audio.currentTime = 0;
     audio.loop = false;
-    if (alarmaTimeout) {
-      clearTimeout(alarmaTimeout);
-      alarmaTimeout = null;
-    }
+    if (alarmaTimeout) clearTimeout(alarmaTimeout);
   }
 
   // --- Trayecto ---
   function iniciarTrayectoMapa() {
     trayectoMap = L.map('trayectoMapa').setView([zona.lat, zona.lng], 13);
-    L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png').addTo(trayectoMap);
+    L.tileLayer('libs/leaflet/{z}/{x}/{y}.png').addTo(trayectoMap);
     trayectoPolyline = L.polyline([], { color: 'blue' }).addTo(trayectoMap);
   }
 
@@ -145,15 +139,28 @@ document.addEventListener('DOMContentLoaded', () => {
     trayecto = [];
     trayectoTiempo = 0;
     trayectoPolyline.setLatLngs([]);
+    document.getElementById('contadorTiempo').textContent = 0;
+
     trayectoTimer = setInterval(() => {
       trayectoTiempo++;
       document.getElementById('contadorTiempo').textContent = trayectoTiempo;
     }, 1000);
+
+    if (navigator.geolocation) {
+      trayectoWatcher = navigator.geolocation.watchPosition(pos => {
+        const coords = [pos.coords.latitude, pos.coords.longitude];
+        trayecto.push(coords);
+        trayectoPolyline.addLatLng(coords);
+        trayectoMap.setView(coords, 15);
+      }, err => console.warn(err), { enableHighAccuracy: true });
+    }
   }
 
   function finalizarTrayecto() {
     clearInterval(trayectoTimer);
+    if (trayectoWatcher) navigator.geolocation.clearWatch(trayectoWatcher);
     trayectos.push([...trayecto]);
+    localStorage.setItem("trayectos", JSON.stringify(trayectos));
     alert("Trayecto guardado");
   }
 
@@ -173,60 +180,53 @@ document.addEventListener('DOMContentLoaded', () => {
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
     const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.sin(dLat / 2) ** 2 +
       Math.cos(lat1 * Math.PI / 180) *
       Math.cos(lat2 * Math.PI / 180) *
-      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      Math.sin(dLon / 2) ** 2;
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   }
 
-  function verificarUbicacionEnZona() {
+  function verificarUbicacionEnZona(pos) {
     if (!alarmaActiva || !zona) return;
 
-    navigator.geolocation.getCurrentPosition(pos => {
-      const distancia = calcularDistancia(
-        pos.coords.latitude,
-        pos.coords.longitude,
-        zona.lat,
-        zona.lng
-      );
+    const distancia = calcularDistancia(
+      pos.coords.latitude,
+      pos.coords.longitude,
+      zona.lat,
+      zona.lng
+    );
 
-      if (distancia <= zona.radius && !yaDentroDeZona) {
-        reproducirAlarma();
-        yaDentroDeZona = true; // Marcar entrada
+    if (distancia <= zona.radius && !yaDentroDeZona) {
+      reproducirAlarma();
+      yaDentroDeZona = true;
 
-        // Solicitar permiso de notificaciones y enviar mensaje al SW
-        if (Notification.permission === "default") {
-          Notification.requestPermission();
-        }
-        if (Notification.permission === "granted" && navigator.serviceWorker.controller) {
-          navigator.serviceWorker.controller.postMessage({ type: "mostrarAlarma" });
-        }
+      if (Notification.permission === "default") Notification.requestPermission();
+      if (Notification.permission === "granted" && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({ type: "mostrarAlarma" });
       }
+    }
 
-      if (distancia > zona.radius) {
-        yaDentroDeZona = false; // Reset al salir
-      }
-    }, err => {
-      console.warn("No se pudo obtener la ubicación:", err);
-    });
+    if (distancia > zona.radius) yaDentroDeZona = false;
   }
 
-  setInterval(verificarUbicacionEnZona, 5000);
+  if (navigator.geolocation) {
+    navigator.geolocation.watchPosition(verificarUbicacionEnZona, err => console.warn(err), { enableHighAccuracy: true });
+  }
 
-  // --- Escuchar mensajes desde el SW ---
+  // --- Mensajes desde SW ---
   if (navigator.serviceWorker) {
     navigator.serviceWorker.addEventListener("message", event => {
       if (event.data && event.data.type === "detenerAlarma") {
         detenerAlarma();
         alarmaActiva = false;
-        toggleAlarma(); // Actualiza estado visual
+        toggleAlarma();
       }
     });
   }
 
-  // --- Exponer funciones globalmente ---
+  // --- Exponer funciones globales ---
   window.buscarCiudad = buscarCiudad;
   window.centrarUbicacion = centrarUbicacion;
   window.toggleAlarma = toggleAlarma;
