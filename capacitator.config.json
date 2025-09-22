@@ -1,0 +1,10 @@
+{
+  "appId": "com.lander.whereclock",
+  "appName": "Whereclock",
+  "webDir": "LANDER",
+  "bundledWebRuntime": false,
+  "server": {
+    "url": "https://lander0101.github.io/whereclock/", 
+    "cleartext": true
+  }
+}
