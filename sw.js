@@ -8,7 +8,7 @@ const urlsToCache = [
   "/", "/index.html", "/offline.html",
   "/style.css", "/script.js",
   "/manifest.json",
-  "/icons/icon-192.png", "/icons/icon-512.png",
+  "/icons/icon192.png", "/icons/icon512.png",
   "/img/area.jpg", "/img/trayecto.jpg", "/img/alarmas.jpg",
   "/sounds/alarma1.mp3", "/sounds/alarma2.mp3", "/sounds/alarma3.mp3", "/sounds/alarma4.mp3",
   "/libs/leaflet/leaflet.css", "/libs/leaflet/leaflet.js"
@@ -76,7 +76,7 @@ self.addEventListener("message", event => {
   if (event.data && event.data.type === "mostrarAlarma") {
     self.registration.showNotification("¡ENTRAS EN EL ÁREA!", {
       body: "WHERECLOCK detectó que entraste en la zona definida.",
-      icon: "icons/icon-192.png",
+      icon: "icons/icon192.png",
       vibrate: [300, 100, 300],
       tag: "alarma-ubicacion",
       renotify: true,
