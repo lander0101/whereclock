@@ -1,8 +1,15 @@
 {
-  "appId": "com.lander.whereclock",
-  "appName": "Whereclock",
+  "appId": "com.whereclock.app",
+  "appName": "WhereClock",
   "webDir": "LANDER",
   "bundledWebRuntime": false,
+  "plugins": {
+    "LocalNotifications": {
+      "sound": "beep.wav",
+      "smallIcon": "ic_stat_icon_config_sample",
+      "iconColor": "#000000"
+    }
+  },
   "server": {
     "url": "https://lander0101.github.io/whereclock/",
     "cleartext": true
